@@ -1,0 +1,58 @@
+# Configuration for Base diffusion training
+
+from __gin__ import dynamic_registration
+
+import musdis
+import musdis.pipeline.model
+import musdis.pipeline.networks
+
+# Constants
+LATENT_DIM = 64
+TIMBRE_DIM = 16
+STRUCTURE_DIM = 8
+DIFFUSION_STEPS = 1000
+
+### ARCHITECTURE ###
+
+# Global Encoder Configuration (timbre - global representation)
+encoder/musdis.pipeline.networks.encoder.Encoder1D:
+    in_channels = %LATENT_DIM
+    channels = [64, 64, 32, %TIMBRE_DIM]
+    strides = [2, 2, 2, 2]
+    kernel_size = 5
+    average_out = True
+    use_tanh = True
+
+# Time Encoder Configuration (structure - keeps temporal information for time_cond) 
+encoder_time/musdis.pipeline.networks.encoder.Encoder1D:
+    in_channels = %LATENT_DIM
+    channels = [64, 64, 32, %STRUCTURE_DIM]
+    strides = [1, 1, 1, 1]
+    kernel_size = 5
+    average_out = False
+    use_tanh = True
+
+# UNet Decoder Configuration
+musdis.pipeline.networks.UNet1D:
+    in_channels = %LATENT_DIM
+    out_channels = %LATENT_DIM
+    channels = [256, 512]
+    cond_channels = %TIMBRE_DIM
+    time_cond_channels = %STRUCTURE_DIM
+    time_embed_dim = 128
+    kernel_size = 3
+
+### MODEL ###
+
+model_class = @musdis.pipeline.model.Diffusion
+
+musdis.pipeline.model.Diffusion:
+    net = @musdis.pipeline.networks.UNet1D()
+    encoder = @encoder/musdis.pipeline.networks.encoder.Encoder1D()
+    encoder_time = @encoder_time/musdis.pipeline.networks.encoder.Encoder1D()
+    latent_dim = %LATENT_DIM
+    num_diffusion_steps = %DIFFUSION_STEPS
+    beta_start = 1e-4
+    beta_end = 2e-2
+    drop_value = -4.0
+    drop_rate = 0.2
