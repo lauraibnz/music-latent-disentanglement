@@ -1,7 +1,7 @@
+import os
 import torch
 import torch.nn as nn
 import gin
-import os
 
 
 @gin.configurable
@@ -9,13 +9,13 @@ class Base(nn.Module):
     """Base model for disentanglement - agnostic to decoder architecture."""
     
     def __init__(self,
-                 net=None,                  # Decoder network (UNet, Flow, etc.)
-                 encoder=None,              # Global encoder (timbre - averages over time)  
-                 encoder_time=None,         # Structure encoder (keeps temporal info)
-                 latent_dim=64,             # Dimension of latent representations
-                 drop_value=-4.0,           # Value for classifier-free guidance dropout
-                 drop_rate=0.2,             # Dropout rate for conditioning
-                 device="cpu"):             # Device
+                 net=None,
+                 encoder=None,
+                 encoder_time=None,
+                 latent_dim=64,
+                 drop_value=-4.0,
+                 drop_rate=0.2,
+                 device="cpu"):
         super().__init__()
         
         self.latent_dim = latent_dim
@@ -29,27 +29,27 @@ class Base(nn.Module):
         # Decoder network - could be UNet, Flow, etc.
         self.net = net
         
-        self.to(device)
-        
+        self._target_device = torch.device(device)
+
     @property
     def device(self):
         """Get model device."""
         return next(self.parameters()).device
-        
+
     def encode_conditioning(self, latent_time, latent_cond):
-        """
-        Encode conditioning from latents.
-        Args:
-            latent_time: Latents to extract time conditioning from [B, latent_dim, T]
-            latent_cond: Latents to extract global conditioning from [B, latent_dim, T]  
-        Returns:
-            time_cond: Time conditioning (structure) [B, channels, T']
-            cond: Global conditioning (timbre) [B, channels]
-        """
-        time_cond = self.encoder_time(latent_time)  # Structure - keeps temporal info
-        cond = self.encoder(latent_cond)            # Timbre - global representation
+        """Encode conditioning from latents."""
+        if self.encoder_time is not None:
+            time_cond = self.encoder_time(latent_time)  # Structure - keeps temporal info
+        else:
+            time_cond = latent_time
+            
+        if self.encoder is not None:
+            cond = self.encoder(latent_cond)            # Timbre - global representation
+        else:
+            cond = None
+            
         return time_cond, cond
-        
+
     def forward(self, *args, **kwargs):
         """Forward pass - to be implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement forward method")
@@ -97,15 +97,16 @@ class Base(nn.Module):
     def configure_optimizers(self, lr=1e-4):
         """Configure optimizer."""
         return torch.optim.Adam(self.parameters(), lr=lr)
-    
+
     def _move_batch_to_device(self, batch):
         """Move batch tensors to device with consistent dtype."""
         for k, v in batch.items():
             if isinstance(v, torch.Tensor):
                 batch[k] = v.to(device=self.device, dtype=torch.float32)
         return batch
-    
-    def fit(self, 
+
+    @gin.configurable
+    def fit(self,
             dataloader=None,
             validloader=None,
             learning_rate=1e-4,
@@ -115,219 +116,198 @@ class Base(nn.Module):
             val_every=1,
             wandb_logging=True,
             experiment_dir=None,
+            grad_clip_max_norm=None,
+            ema_decay=0.0,
             **kwargs):
         """
         Train the model with configurable parameters from gin.
         """
         import wandb
         from tqdm import tqdm
+
+        opt = self.configure_optimizers(lr=learning_rate)
         
-        print(f"Starting training with lr={learning_rate}, batch_size={batch_size}, epochs={epochs}")
-        
-        # Create optimizer
-        optimizer = self.configure_optimizers(lr=learning_rate)
-        
-        # Training loop
-        best_val_loss = float('inf')
-        
-        epoch_pbar = tqdm(range(1, epochs + 1), desc="Training Progress")
-        for epoch in epoch_pbar:
+        # Optional EMA setup
+        use_ema = (ema_decay is not None) and (float(ema_decay) > 0.0)
+        ema_state = {n: p.detach().clone() for n, p in self.named_parameters() if p.requires_grad} if use_ema else None
+        best_val = float("inf")
+
+        for epoch in tqdm(range(1, epochs + 1), desc="Training"):
             # Train epoch
             self.train()
-            total_train_loss = 0
-            num_train_batches = len(dataloader)
-            train_loss_accumulator = {}
-            
-            train_pbar = tqdm(dataloader, desc=f"Epoch {epoch}", leave=False)
-            for batch_idx, batch in enumerate(train_pbar):
+            tr_sum, tr_n = 0.0, 0
+            for batch in tqdm(dataloader, leave=False, desc=f"Epoch {epoch}"):
                 # Move to device and ensure consistent dtype
                 batch = self._move_batch_to_device(batch)
                 
                 # Training step
-                optimizer.zero_grad()
-                loss_dict = self.training_step(batch, batch_idx)
-                loss = loss_dict['total_loss']
+                opt.zero_grad(set_to_none=True)
+                loss = self.training_step(batch, None)["total_loss"]
                 
                 # Backward pass
                 loss.backward()
-                optimizer.step()
+                if grad_clip_max_norm is not None:
+                    torch.nn.utils.clip_grad_norm_(self.parameters(), float(grad_clip_max_norm))
+                opt.step()
                 
-                # Accumulate losses for averaging
-                for k, v in loss_dict.items():
-                    if isinstance(v, torch.Tensor) and v.numel() == 1:  # Scalar tensors only
-                        if k not in train_loss_accumulator:
-                            train_loss_accumulator[k] = 0
-                        train_loss_accumulator[k] += v.item()
-                
-                # Update metrics
-                total_train_loss += loss.item()
-                
-                # Update progress bar - show both diffusion loss and total loss
-                progress_dict = {'total_loss': f'{loss.item():.4f}'}
-                if 'diff_loss' in loss_dict:
-                    progress_dict['diff_loss'] = f'{loss_dict["diff_loss"].item():.4f}'
-                train_pbar.set_postfix(progress_dict)
-            
-            # Average accumulated losses
-            train_losses = {k: v / num_train_batches for k, v in train_loss_accumulator.items()}
-            train_loss = train_losses.get('total_loss', total_train_loss / num_train_batches)
-            
-            # Validate epoch
-            val_losses = None
+                # Update EMA after optimizer step
+                if use_ema:
+                    with torch.no_grad():
+                        for name, p in self.named_parameters():
+                            if p.requires_grad:
+                                ema_state[name].mul_(float(ema_decay)).add_(p.detach(), alpha=1.0 - float(ema_decay))
+                tr_sum += float(loss.detach())
+                tr_n += 1
+            tr_loss = tr_sum / max(1, tr_n)
+
             val_loss = None
-            if validloader is not None and epoch % val_every == 0:
+            if validloader is not None and (epoch % val_every == 0):
                 self.eval()
-                total_val_loss = 0
-                num_val_batches = len(validloader)
-                val_loss_accumulator = {}
-                
+                if use_ema:
+                    orig = {n: p.detach().clone() for n, p in self.named_parameters() if p.requires_grad}
+                    with torch.no_grad():
+                        for name, p in self.named_parameters():
+                            if p.requires_grad:
+                                p.copy_(ema_state[name])
+                vsum, vn = 0.0, 0
                 with torch.no_grad():
-                    val_pbar = tqdm(validloader, desc=f"Val {epoch}", leave=False)
-                    for batch_idx, batch in enumerate(val_pbar):
-                        # Move to device and ensure consistent dtype
+                    for batch in tqdm(validloader, leave=False, desc=f"Val {epoch}"):
                         batch = self._move_batch_to_device(batch)
-                        
-                        # Validation step
-                        loss_dict = self.validation_step(batch, batch_idx)
-                        loss = loss_dict['total_loss']
-                        
-                        # Accumulate losses for averaging
-                        for k, v in loss_dict.items():
-                            if isinstance(v, torch.Tensor) and v.numel() == 1:  # Scalar tensors only
-                                if k not in val_loss_accumulator:
-                                    val_loss_accumulator[k] = 0
-                                val_loss_accumulator[k] += v.item()
-                        
-                        total_val_loss += loss.item()
-                        
-                        # Update progress bar - show both diffusion loss and total loss
-                        progress_dict = {'val_total_loss': f'{loss.item():.4f}'}
-                        if 'diff_loss' in loss_dict:
-                            progress_dict['val_diff_loss'] = f'{loss_dict["diff_loss"].item():.4f}'
-                        val_pbar.set_postfix(progress_dict)
-                
-                # Average accumulated losses
-                val_losses = {k: v / num_val_batches for k, v in val_loss_accumulator.items()}
-                val_loss = val_losses.get('total_loss', total_val_loss / num_val_batches)
-            
-            # Log to wandb with detailed loss breakdown
+                        vsum += float(self.validation_step(batch, None)["total_loss"])
+                        vn += 1
+                val_loss = vsum / max(1, vn)
+                if use_ema:
+                    with torch.no_grad():
+                        for name, p in self.named_parameters():
+                            if p.requires_grad:
+                                p.copy_(orig[name])
+
             if wandb_logging:
-                log_dict = {"epoch": epoch}
-                
-                # Log all training losses with train/ prefix
-                for k, v in train_losses.items():
-                    log_dict[f"train/{k}"] = v
-                
-                # Log all validation losses with val/ prefix
-                if val_losses is not None:
-                    for k, v in val_losses.items():
-                        log_dict[f"val/{k}"] = v
-                
-                wandb.log(log_dict)
-            
-            # Auto-save gin configuration (first epoch only)
-            if epoch == 1 and experiment_dir is not None:
-                gin_config_path = os.path.join(experiment_dir, "config.gin")
-                with open(gin_config_path, "w") as f:
-                    f.write(gin.operative_config_str())
-            
-            # Print progress
-            if val_loss is not None:
-                print(f"Epoch {epoch}: Train Loss: {train_loss:.4f}, Val Loss: {val_loss:.4f}")
-                epoch_pbar.set_postfix({
-                    'train_loss': f'{train_loss:.4f}',
-                    'val_loss': f'{val_loss:.4f}'
-                })
-            else:
-                print(f"Epoch {epoch}: Train Loss: {train_loss:.4f}")
-                epoch_pbar.set_postfix({
-                    'train_loss': f'{train_loss:.4f}'
-                })
-            
-            # Save checkpoints
+                logd = {"epoch": epoch, "train/total_loss": tr_loss}
+                if val_loss is not None:
+                    logd["val/total_loss"] = val_loss
+                wandb.log(logd)
+
             if experiment_dir is not None:
-                save_checkpoint = epoch % save_every == 0
-                save_best = val_loss is not None and val_loss < best_val_loss
-                
-                if save_checkpoint or save_best:
-                    checkpoint = {
-                        'epoch': epoch,
-                        'model_state_dict': self.state_dict(),
-                        'optimizer_state_dict': optimizer.state_dict(),
-                        'train_loss': train_loss,
-                        'val_loss': val_loss,
-                        'fit_config': {
-                            'learning_rate': learning_rate,
-                            'batch_size': batch_size,
-                            'epochs': epochs,
-                            **kwargs
+                os.makedirs(experiment_dir, exist_ok=True)
+                if epoch == 1:
+                    with open(os.path.join(experiment_dir, "config.gin"), "w") as f:
+                        f.write(gin.operative_config_str())
+
+                save_ckpt = (epoch % save_every == 0)
+                save_best = (val_loss is not None and val_loss < best_val)
+                if save_ckpt or save_best:
+                    state = self.state_dict()
+                    if use_ema and save_best:
+                        state = {k: v.clone() for k, v in state.items()}
+                        for name, p in self.named_parameters():
+                            if p.requires_grad:
+                                state[name] = ema_state[name].clone().to(p.device)
+                    ckpt = {
+                        "epoch": epoch,
+                        "model_state_dict": state,
+                        "optimizer_state_dict": opt.state_dict(),
+                        "train_loss": tr_loss,
+                        "val_loss": val_loss,
+                        "fit_config": {
+                            "learning_rate": learning_rate,
+                            "batch_size": batch_size,
+                            "epochs": epochs,
+                            "ema_decay": float(ema_decay),
+                            "grad_clip_max_norm": float(grad_clip_max_norm) if grad_clip_max_norm is not None else None,
                         }
                     }
-                    
-                    # Save regular checkpoint
-                    if save_checkpoint:
-                        torch.save(checkpoint, os.path.join(experiment_dir, f'checkpoint_epoch_{epoch}.pt'))
-                    
-                    # Save best model
+                    if use_ema:
+                        ckpt["ema_state_dict"] = {k: v.clone() for k, v in ema_state.items()}
+                    if save_ckpt:
+                        torch.save(ckpt, os.path.join(experiment_dir, f"checkpoint_epoch_{epoch}.pt"))
                     if save_best:
-                        best_val_loss = val_loss
-                        torch.save(checkpoint, os.path.join(experiment_dir, 'best_model.pt'))
-                        print(f"New best model saved! Val Loss: {val_loss:.4f}")
-        
-        print("Training completed!")
-        return {'final_train_loss': train_loss, 'best_val_loss': best_val_loss}
+                        best_val = val_loss
+                        torch.save(ckpt, os.path.join(experiment_dir, "best_model.pt"))
+        return {"final_train_loss": tr_loss, "best_val_loss": best_val}
 
 
 @gin.configurable
 class Diffusion(Base):
-    """Diffusion-based implementation of Base model."""
+    """
+    DDPM/DDIM diffusion model for generating music representations.
     
+    This class implements the denoising diffusion probabilistic model (DDPM) with support for
+    both full DDPM sampling and DDIM (deterministic) sampling. It uses epsilon-prediction
+    and supports cosine beta schedules for improved training stability.
+    
+    Features:
+    - Epsilon-prediction loss (MSE)
+    - Cosine or linear beta schedule
+    - EMA + gradient clipping via Base class
+    - DDPM sampler (full 1000 steps)
+    - DDIM sampler (η=0, subsampled timesteps)
+    """
+
     def __init__(self,
-                 num_diffusion_steps=1000,  # Number of diffusion steps
-                 beta_start=1e-4,           # Noise schedule start
-                 beta_end=2e-2,             # Noise schedule end
+                 num_diffusion_steps=1000,
+                 beta_start=1e-4,
+                 beta_end=2e-2,
                  **kwargs):
         super().__init__(**kwargs)
+
+        self.num_diffusion_steps = int(num_diffusion_steps)
+        self.beta_schedule = "cosine"
+
+        # Create noise schedule
+        betas = self._make_beta_schedule(beta_start, beta_end, self.num_diffusion_steps, self.beta_schedule)
+        alphas = 1.0 - betas
+        alpha_bars = torch.cumprod(alphas, dim=0)
+
+        # Register noise schedule buffers
+        self.register_buffer("betas", betas)
+        self.register_buffer("alphas", alphas)
+        self.register_buffer("alpha_bars", torch.clamp(alpha_bars, 1e-8, 1.0))
+
+        # Precompute posterior variance for sampling
+        one = torch.tensor([1.0], dtype=alpha_bars.dtype, device=alpha_bars.device)
+        alpha_bars_prev = torch.cat([one, self.alpha_bars[:-1]])
+        posterior_variance = betas * (1.0 - alpha_bars_prev) / (1.0 - self.alpha_bars)
+        posterior_variance = torch.clamp(posterior_variance, min=1e-20)
+        c0 = (alpha_bars_prev.sqrt() * betas) / (1.0 - self.alpha_bars)
+        c1 = (alphas.sqrt() * (1.0 - alpha_bars_prev)) / (1.0 - self.alpha_bars)
+
+        # Register posterior sampling coefficients
+        self.register_buffer("alpha_bars_prev", alpha_bars_prev)
+        self.register_buffer("posterior_variance", posterior_variance)
+        self.register_buffer("posterior_mean_coef1", c0)
+        self.register_buffer("posterior_mean_coef2", c1)
         
-        self.num_diffusion_steps = num_diffusion_steps
-        
-        # UNet decoder should be set via gin config
-        # No fallback creation - gin config is the single source of truth
-        
-        # Diffusion noise schedule
-        self.register_buffer('betas', self._get_beta_schedule(beta_start, beta_end, num_diffusion_steps))
-        self.register_buffer('alphas', 1 - self.betas)
-        self.register_buffer('alphas_cumprod', torch.cumprod(self.alphas, dim=0))
-        
-    def _get_beta_schedule(self, beta_start, beta_end, num_steps):
-        """Linear beta schedule for diffusion."""
-        return torch.linspace(beta_start, beta_end, num_steps)
-        
-    def add_noise(self, latents, timesteps):
-        """Add noise to latents according to diffusion schedule."""
-        batch_size = latents.shape[0]
-        noise = torch.randn_like(latents)
-        
-        # Get alpha values for the timesteps
-        alphas_cumprod_t = self.alphas_cumprod[timesteps].view(batch_size, 1, 1)
-        
-        # Add noise: x_t = sqrt(alpha_cumprod_t) * x_0 + sqrt(1 - alpha_cumprod_t) * noise
-        noisy_latents = (alphas_cumprod_t.sqrt() * latents + 
-                        (1 - alphas_cumprod_t).sqrt() * noise)
-        
-        return noisy_latents, noise
-        
+        # Move to target device after all buffers are registered
+        self.to(self._target_device)
+
+    @staticmethod
+    def _make_beta_schedule(beta_start, beta_end, num_steps, schedule):
+        """Create noise schedule for diffusion process."""
+        if schedule == "linear":
+            return torch.linspace(float(beta_start), float(beta_end), int(num_steps), dtype=torch.float32)
+        elif schedule == "cosine":
+            import math
+            s = 0.008
+            steps = num_steps + 1
+            x = torch.linspace(0, num_steps, steps, dtype=torch.float32)
+            a_bar = torch.cos(((x / num_steps) + s) / (1 + s) * math.pi * 0.5) ** 2
+            a_bar = a_bar / a_bar[0]
+            betas = 1 - (a_bar[1:] / a_bar[:-1])
+            return torch.clamp(betas, 1e-8, 0.999)
+        else:
+            raise ValueError(f"Unknown beta schedule: {schedule}")
+
+    def add_noise(self, x0, t):
+        """Add noise to clean data according to diffusion schedule."""
+        b = x0.shape[0]
+        eps = torch.randn_like(x0)
+        alpha_bar_t = self.alpha_bars[t].view(b, 1, 1)
+        xt = alpha_bar_t.sqrt() * x0 + (1.0 - alpha_bar_t).sqrt() * eps
+        return xt, eps
+
     def forward(self, noisy_latents, timesteps, time_cond, cond):
-        """
-        Predict noise in noisy latents given conditioning.
-        Args:
-            noisy_latents: Noisy latent representations [B, latent_dim, T]
-            timesteps: Diffusion timesteps [B] 
-            time_cond: Time conditioning [B, channels, T']
-            cond: Global conditioning [B, channels]
-        Returns:
-            predicted_noise: Predicted noise [B, latent_dim, T]
-        """
+        """Predict noise in noisy latents given conditioning."""
         predicted_noise = self.net(
             noisy_latents,
             timesteps=timesteps,
@@ -336,44 +316,27 @@ class Diffusion(Base):
         )
         
         return predicted_noise
-    
+
     def predict_noise(self, noisy_latents, timesteps, time_cond, cond):
-        """
-        Alias for forward method - more explicit about what this does.
-        Predict noise in noisy latents given conditioning.
-        """
+        """Alias for forward method - more explicit about what this does."""
         return self.forward(noisy_latents, timesteps, time_cond, cond)
-    
-    def compute_loss(self, noisy_latents, noise, timesteps, time_cond, cond):
-        """
-        Compute diffusion loss (noise prediction) given encoded inputs.
-        Args:
-            noisy_latents: Noisy latent representations [B, latent_dim, T]
-            noise: Target noise [B, latent_dim, T]
-            timesteps: Diffusion timesteps [B]
-            time_cond: Time conditioning [B, channels, T']
-            cond: Global conditioning [B, channels]
-        Returns:
-            Dictionary with loss components
-        """
-        # Predict noise
-        predicted_noise = self.forward(noisy_latents, timesteps, time_cond, cond)
-        
-        # Compute loss (MSE between predicted and actual noise)
-        diffusion_loss = nn.functional.mse_loss(predicted_noise, noise)
-        
-        return {
-            'total_loss': diffusion_loss,
-            'diff_loss': diffusion_loss,
-        }
-    
+
+    def _eps_pred(self, x_t, t, time_cond, cond):
+        """Predict noise using the neural network."""
+        return self.net(x_t, timesteps=t, cond=cond, time_cond=time_cond)
+
+    def compute_loss(self, x_t, eps, t, time_cond, cond):
+        """Compute MSE loss between predicted and true noise."""
+        eps_pred = self._eps_pred(x_t, t, time_cond, cond)
+        loss = nn.functional.mse_loss(eps_pred, eps)
+        return {"total_loss": loss, "diff_loss": loss}
+
     def training_step(self, batch, batch_idx=None):
         """Training step with encoding and loss computation."""
-        latents = batch['latent']  # [B, latent_dim, T]
+        latents = batch['latent']
         batch_size = latents.shape[0]
         
         # For disentanglement training, we can use the same latents for both encoders
-        # In the future, you might want to use different sources
         latent_time = latents   # Time source
         latent_cond = latents   # Global source
         
@@ -397,70 +360,70 @@ class Diffusion(Base):
         })
         
         return loss_dict
-    
+
     def validation_step(self, batch, batch_idx=None):
-        """Validation step - same as training step but with no_grad context."""
+        """Validation step - same as training step."""
         return self.training_step(batch, batch_idx)
-    
+
     @torch.no_grad()
-    def sample(self, time_source, cond_source, num_inference_steps=50):
-        """
-        Generate latents using proper DDPM sampling.
-        Args:
-            time_source: Latents to extract time conditioning from [B, latent_dim, T]
-            cond_source: Latents to extract global conditioning from [B, latent_dim, T]
-            num_inference_steps: Number of denoising steps
-        Returns:
-            generated_latents: Generated latents [B, latent_dim, T]
-        """
-        # Encode conditioning
+    def sample(self, time_source, cond_source, num_inference_steps=None):
+        self.eval()
+        
+        if num_inference_steps is None:
+            num_inference_steps = self.num_diffusion_steps
+        num_inference_steps = int(num_inference_steps)
+
         time_cond, cond = self.encode_conditioning(time_source, cond_source)
+        x = torch.randn_like(time_source)
+        b = x.shape[0]
+
+        if num_inference_steps == self.num_diffusion_steps:
+            # Full DDPM (unit steps)
+            for t in range(self.num_diffusion_steps - 1, -1, -1):
+                t_batch = torch.full((b,), t, device=x.device, dtype=torch.long)
+                eps = self._eps_pred(x, t_batch, time_cond, cond)
+                a_bar_t = self.alpha_bars[t]
+                x0_hat = (x - (1.0 - a_bar_t).sqrt() * eps) / a_bar_t.sqrt()
+                
+                # Re-normalize to match encoder latent distribution
+                x0_hat = (x0_hat - x0_hat.mean(dim=(1,2), keepdim=True)) / (
+                    x0_hat.std(dim=(1,2), keepdim=True) + 1e-6
+                )
+                x0_hat = torch.clamp(x0_hat, -5, 5)  # Mild clamp for outliers
+                
+                mean = self.posterior_mean_coef1[t] * x0_hat + self.posterior_mean_coef2[t] * x
+                if t > 0:
+                    x = mean + self.posterior_variance[t].sqrt() * torch.randn_like(x)
+                else:
+                    x = mean
+            return x
+
+        # DDIM deterministic sampling (η=0) - use evenly spaced timesteps
+        timesteps = torch.linspace(self.num_diffusion_steps - 1, 0, num_inference_steps, device=x.device)
+        timesteps = torch.round(timesteps).to(torch.long)
+        timesteps[-1] = 0
+        timesteps = torch.unique_consecutive(timesteps)
         
-        # Start from pure noise
-        latents = torch.randn_like(time_source)
-        
-        # Create proper timestep schedule (evenly spaced)
-        timesteps = torch.linspace(self.num_diffusion_steps - 1, 0, num_inference_steps, 
-                                  dtype=torch.long, device=latents.device)
-        
-        # Denoising loop with proper DDPM equations
-        for i, t in enumerate(timesteps):
-            t_batch = t.repeat(latents.shape[0])
-            
-            # Predict noise
-            predicted_noise = self.forward(latents, t_batch, time_cond, cond)
-            
-            # Get schedule values
-            alpha_t = self.alphas_cumprod[t]
-            beta_t = self.betas[t]
+        for i in range(len(timesteps)):
+            t = int(timesteps[i].item())
+            t_batch = torch.full((b,), t, device=x.device, dtype=torch.long)
+            eps = self._eps_pred(x, t_batch, time_cond, cond)
+            a_bar_t = self.alpha_bars[t]
             
             if i < len(timesteps) - 1:
-                # Not the final step - use proper DDPM equations
-                alpha_t_prev = self.alphas_cumprod[timesteps[i + 1]]
-                
-                # Predict x_0 from current latents
-                pred_x0 = (latents - (1 - alpha_t).sqrt() * predicted_noise) / alpha_t.sqrt()
-                
-                # Clamp predicted x_0 to reasonable range
-                pred_x0 = torch.clamp(pred_x0, -10, 10)
-                
-                # Compute mean of posterior q(x_{t-1} | x_t, x_0)
-                posterior_variance = beta_t * (1 - alpha_t_prev) / (1 - alpha_t)
-                posterior_mean_coef1 = (alpha_t_prev.sqrt() * beta_t) / (1 - alpha_t)
-                posterior_mean_coef2 = ((1 - beta_t).sqrt() * (1 - alpha_t_prev)) / (1 - alpha_t)
-                
-                posterior_mean = posterior_mean_coef1 * pred_x0 + posterior_mean_coef2 * latents
-                
-                # Add noise (except for t=0)
-                if t > 0:
-                    noise = torch.randn_like(latents)
-                    latents = posterior_mean + posterior_variance.sqrt() * noise
-                else:
-                    latents = posterior_mean
-                    
+                t_next = int(timesteps[i + 1].item())
+                a_bar_next = self.alpha_bars[t_next]
             else:
-                # Final step: predict x_0 directly
-                latents = (latents - (1 - alpha_t).sqrt() * predicted_noise) / alpha_t.sqrt()
-                latents = torch.clamp(latents, -10, 10)
-        
-        return latents
+                a_bar_next = torch.tensor(1.0, device=x.device)
+            
+            x0_hat = (x - (1.0 - a_bar_t).sqrt() * eps) / a_bar_t.sqrt()
+            
+            # Re-normalize to match encoder latent distribution
+            x0_hat = (x0_hat - x0_hat.mean(dim=(1,2), keepdim=True)) / (
+                x0_hat.std(dim=(1,2), keepdim=True) + 1e-6
+            )
+            x0_hat = torch.clamp(x0_hat, -5, 5)  # Mild clamp for outliers
+            
+            x = a_bar_next.sqrt() * x0_hat + (1.0 - a_bar_next).sqrt() * eps
+
+        return x
