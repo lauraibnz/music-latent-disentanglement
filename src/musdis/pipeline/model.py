@@ -2,6 +2,7 @@ import os
 import torch
 import torch.nn as nn
 import gin
+import copy
 
 
 @gin.configurable
@@ -129,7 +130,27 @@ class Base(nn.Module):
         
         # Optional EMA setup
         use_ema = (ema_decay is not None) and (float(ema_decay) > 0.0)
-        ema_state = {n: p.detach().clone() for n, p in self.named_parameters() if p.requires_grad} if use_ema else None
+        ema_decay = float(ema_decay)
+        ema_model = None
+        if use_ema:
+            ema_model = copy.deepcopy(self).eval().to(self.device)
+            for p in ema_model.parameters():
+                p.requires_grad_(False)
+
+        def _ema_update(ema_m, online_m, decay):
+            """Update EMA model parameters + buffers in-place."""
+            with torch.no_grad():
+                msd = online_m.state_dict()
+                esd = ema_m.state_dict()
+                for k in esd.keys():
+                    v = esd[k]
+                    if k in msd:
+                        v_src = msd[k]
+                        if v.dtype.is_floating_point:
+                            v.copy_(decay * v + (1.0 - decay) * v_src)
+                        else:
+                            v.copy_(v_src)
+
         best_val = float("inf")
 
         for epoch in tqdm(range(1, epochs + 1), desc="Training"):
@@ -152,10 +173,7 @@ class Base(nn.Module):
                 
                 # Update EMA after optimizer step
                 if use_ema:
-                    with torch.no_grad():
-                        for name, p in self.named_parameters():
-                            if p.requires_grad:
-                                ema_state[name].mul_(float(ema_decay)).add_(p.detach(), alpha=1.0 - float(ema_decay))
+                    _ema_update(ema_model, self, ema_decay)
                 tr_sum += float(loss.detach())
                 tr_n += 1
             tr_loss = tr_sum / max(1, tr_n)
@@ -163,12 +181,7 @@ class Base(nn.Module):
             val_loss = None
             if validloader is not None and (epoch % val_every == 0):
                 self.eval()
-                if use_ema:
-                    orig = {n: p.detach().clone() for n, p in self.named_parameters() if p.requires_grad}
-                    with torch.no_grad():
-                        for name, p in self.named_parameters():
-                            if p.requires_grad:
-                                p.copy_(ema_state[name])
+
                 vsum, vn = 0.0, 0
                 with torch.no_grad():
                     for batch in tqdm(validloader, leave=False, desc=f"Val {epoch}"):
@@ -176,11 +189,6 @@ class Base(nn.Module):
                         vsum += float(self.validation_step(batch, None)["total_loss"])
                         vn += 1
                 val_loss = vsum / max(1, vn)
-                if use_ema:
-                    with torch.no_grad():
-                        for name, p in self.named_parameters():
-                            if p.requires_grad:
-                                p.copy_(orig[name])
 
             if wandb_logging:
                 logd = {"epoch": epoch, "train/total_loss": tr_loss}
@@ -198,11 +206,6 @@ class Base(nn.Module):
                 save_best = (val_loss is not None and val_loss < best_val)
                 if save_ckpt or save_best:
                     state = self.state_dict()
-                    if use_ema and save_best:
-                        state = {k: v.clone() for k, v in state.items()}
-                        for name, p in self.named_parameters():
-                            if p.requires_grad:
-                                state[name] = ema_state[name].clone().to(p.device)
                     ckpt = {
                         "epoch": epoch,
                         "model_state_dict": state,
@@ -218,7 +221,7 @@ class Base(nn.Module):
                         }
                     }
                     if use_ema:
-                        ckpt["ema_state_dict"] = {k: v.clone() for k, v in ema_state.items()}
+                        ckpt["ema_state_dict"] = ema_model.state_dict()
                     if save_ckpt:
                         torch.save(ckpt, os.path.join(experiment_dir, f"checkpoint_epoch_{epoch}.pt"))
                     if save_best:
@@ -228,7 +231,7 @@ class Base(nn.Module):
 
 
 @gin.configurable
-class Diffusion(Base):
+class DDPM(Base):
     """
     DDPM/DDIM diffusion model for generating music representations.
     
@@ -248,11 +251,12 @@ class Diffusion(Base):
                  num_diffusion_steps=1000,
                  beta_start=1e-4,
                  beta_end=2e-2,
+                 beta_schedule="cosine",
                  **kwargs):
         super().__init__(**kwargs)
 
         self.num_diffusion_steps = int(num_diffusion_steps)
-        self.beta_schedule = "cosine"
+        self.beta_schedule = beta_schedule
 
         # Create noise schedule
         betas = self._make_beta_schedule(beta_start, beta_end, self.num_diffusion_steps, self.beta_schedule)
@@ -334,6 +338,7 @@ class Diffusion(Base):
     def training_step(self, batch, batch_idx=None):
         """Training step with encoding and loss computation."""
         latents = batch['latent']
+        latents = (latents - latents.mean(dim=(1,2), keepdim=True)) / (latents.std(dim=(1,2), keepdim=True) + 1e-6)
         batch_size = latents.shape[0]
         
         # For disentanglement training, we can use the same latents for both encoders
@@ -366,64 +371,48 @@ class Diffusion(Base):
         return self.training_step(batch, batch_idx)
 
     @torch.no_grad()
-    def sample(self, time_source, cond_source, num_inference_steps=None):
+    def sample(self, time_source, cond_source, num_inference_steps=None, deterministic=False):
+        """Stable DDPM sampling (stochastic, training-matched)."""
         self.eval()
-        
+
         if num_inference_steps is None:
             num_inference_steps = self.num_diffusion_steps
         num_inference_steps = int(num_inference_steps)
+        assert deterministic is False, "DDPM sampler is stochastic; set deterministic=False."
 
         time_cond, cond = self.encode_conditioning(time_source, cond_source)
+
         x = torch.randn_like(time_source)
         b = x.shape[0]
 
-        if num_inference_steps == self.num_diffusion_steps:
-            # Full DDPM (unit steps)
-            for t in range(self.num_diffusion_steps - 1, -1, -1):
-                t_batch = torch.full((b,), t, device=x.device, dtype=torch.long)
-                eps = self._eps_pred(x, t_batch, time_cond, cond)
-                a_bar_t = self.alpha_bars[t]
-                x0_hat = (x - (1.0 - a_bar_t).sqrt() * eps) / a_bar_t.sqrt()
-                
-                # Re-normalize to match encoder latent distribution
-                x0_hat = (x0_hat - x0_hat.mean(dim=(1,2), keepdim=True)) / (
-                    x0_hat.std(dim=(1,2), keepdim=True) + 1e-6
-                )
-                x0_hat = torch.clamp(x0_hat, -5, 5)  # Mild clamp for outliers
-                
-                mean = self.posterior_mean_coef1[t] * x0_hat + self.posterior_mean_coef2[t] * x
-                if t > 0:
-                    x = mean + self.posterior_variance[t].sqrt() * torch.randn_like(x)
-                else:
-                    x = mean
-            return x
-
-        # DDIM deterministic sampling (η=0) - use evenly spaced timesteps
-        timesteps = torch.linspace(self.num_diffusion_steps - 1, 0, num_inference_steps, device=x.device)
-        timesteps = torch.round(timesteps).to(torch.long)
-        timesteps[-1] = 0
-        timesteps = torch.unique_consecutive(timesteps)
-        
-        for i in range(len(timesteps)):
-            t = int(timesteps[i].item())
+        for t in range(self.num_diffusion_steps - 1, -1, -1):
             t_batch = torch.full((b,), t, device=x.device, dtype=torch.long)
             eps = self._eps_pred(x, t_batch, time_cond, cond)
-            a_bar_t = self.alpha_bars[t]
-            
-            if i < len(timesteps) - 1:
-                t_next = int(timesteps[i + 1].item())
-                a_bar_next = self.alpha_bars[t_next]
+
+            # Scalars for this step
+            a_bar_t     = self.alpha_bars[t].to(x).clamp_min(1e-12)
+            a_bar_prev  = self.alpha_bars_prev[t].to(x).clamp_min(1e-12)
+            beta_t      = self.betas[t].to(x).clamp_min(1e-12)
+            alpha_t     = self.alphas[t].to(x).clamp_min(1e-12)
+
+            # Predict clean latent
+            sqrt_a_bar  = a_bar_t.sqrt()
+            sqrt_1mab   = (1.0 - a_bar_t).clamp_min(1e-12).sqrt()
+            x0_hat      = (x - sqrt_1mab * eps) / sqrt_a_bar
+
+            # Mild, distribution-preserving limiter (prevents runaway)
+            x0_hat = torch.tanh(x0_hat / 5.0) * 5.0
+
+            # Posterior mean: reshape scalars to broadcast over [B,C,T]
+            c1 = (a_bar_prev.sqrt() * beta_t / (1.0 - a_bar_t)).view(1, 1, 1)
+            c2 = (alpha_t.sqrt() * (1.0 - a_bar_prev) / (1.0 - a_bar_t)).view(1, 1, 1)
+            mean = c1 * x0_hat + c2 * x
+
+            if t > 0:
+                var = self.posterior_variance[t].to(x).clamp_min(1e-20).view(1, 1, 1)
+                x = mean + var.sqrt() * torch.randn_like(x)
             else:
-                a_bar_next = torch.tensor(1.0, device=x.device)
-            
-            x0_hat = (x - (1.0 - a_bar_t).sqrt() * eps) / a_bar_t.sqrt()
-            
-            # Re-normalize to match encoder latent distribution
-            x0_hat = (x0_hat - x0_hat.mean(dim=(1,2), keepdim=True)) / (
-                x0_hat.std(dim=(1,2), keepdim=True) + 1e-6
-            )
-            x0_hat = torch.clamp(x0_hat, -5, 5)  # Mild clamp for outliers
-            
-            x = a_bar_next.sqrt() * x0_hat + (1.0 - a_bar_next).sqrt() * eps
+                x = mean
 
         return x
+

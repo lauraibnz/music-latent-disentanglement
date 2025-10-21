@@ -78,8 +78,8 @@ def main():
     
     # Create model (using gin config to determine model class)
     print("Creating model...")
-    from musdis.pipeline.model import Diffusion
-    model = Diffusion()
+    from musdis.pipeline.model import DDPM
+    model = DDPM()
     model = model.to(device)
     
     # Print model info

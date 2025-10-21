@@ -44,9 +44,9 @@ musdis.pipeline.networks.UNet1D:
 
 ### MODEL ###
 
-model_class = @musdis.pipeline.model.Diffusion
+model_class = @musdis.pipeline.model.DDPM
 
-musdis.pipeline.model.Diffusion:
+musdis.pipeline.model.DDPM:
     net = @musdis.pipeline.networks.UNet1D()
     encoder = @encoder/musdis.pipeline.networks.encoder.Encoder1D()
     encoder_time = @encoder_time/musdis.pipeline.networks.encoder.Encoder1D()
@@ -56,3 +56,6 @@ musdis.pipeline.model.Diffusion:
     beta_end = 2e-2
     drop_value = -4.0
     drop_rate = 0.2
+
+musdis.pipeline.model.DDPM.fit.grad_clip_max_norm = 0.5
+musdis.pipeline.model.DDPM.fit.ema_decay = 0.999

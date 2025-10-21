@@ -5,16 +5,18 @@ import torch.nn as nn
 class ConvBlock1D(nn.Module):
     """Simple 1D convolution block with residual connection."""
     
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, num_groups=8):
         super().__init__()
         
         self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size, 
-                              stride=stride, padding=kernel_size//2)
+                               stride=stride, padding=kernel_size // 2)
         self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size, 
-                              stride=1, padding=kernel_size//2)
+                               stride=1, padding=kernel_size // 2)
         
-        self.bn1 = nn.BatchNorm1d(in_channels)
-        self.bn2 = nn.BatchNorm1d(out_channels)
+        # GroupNorm replaces BatchNorm
+        self.norm1 = nn.GroupNorm(num_groups=min(num_groups, in_channels), num_channels=in_channels)
+        self.norm2 = nn.GroupNorm(num_groups=min(num_groups, out_channels), num_channels=out_channels)
+        
         self.activation = nn.SiLU()
         self.dropout = nn.Dropout(0.1)
         
@@ -27,11 +29,11 @@ class ConvBlock1D(nn.Module):
         residual = x
         
         # Main path
-        out = self.bn1(x)
+        out = self.norm1(x)
         out = self.activation(out)
         out = self.conv1(out)
         
-        out = self.bn2(out)
+        out = self.norm2(out)
         out = self.activation(out)
         out = self.dropout(out)
         out = self.conv2(out)
