@@ -13,9 +13,15 @@ class ConvBlock1D(nn.Module):
         self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size, 
                                stride=1, padding=kernel_size // 2)
         
-        # GroupNorm replaces BatchNorm
-        self.norm1 = nn.GroupNorm(num_groups=min(num_groups, in_channels), num_channels=in_channels)
-        self.norm2 = nn.GroupNorm(num_groups=min(num_groups, out_channels), num_channels=out_channels)
+        # GroupNorm replaces BatchNorm - ensure num_groups divides channels
+        def get_valid_groups(channels, max_groups):
+            for groups in range(min(max_groups, channels), 0, -1):
+                if channels % groups == 0:
+                    return groups
+            return 1  # Fallback to 1 group
+        
+        self.norm1 = nn.GroupNorm(num_groups=get_valid_groups(in_channels, num_groups), num_channels=in_channels)
+        self.norm2 = nn.GroupNorm(num_groups=get_valid_groups(out_channels, num_groups), num_channels=out_channels)
         
         self.activation = nn.SiLU()
         self.dropout = nn.Dropout(0.1)

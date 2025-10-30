@@ -233,18 +233,17 @@ class Base(nn.Module):
 @gin.configurable
 class DDPM(Base):
     """
-    DDPM/DDIM diffusion model for generating music representations.
+    DDPM diffusion model for generating music representations.
     
     This class implements the denoising diffusion probabilistic model (DDPM) with support for
-    both full DDPM sampling and DDIM (deterministic) sampling. It uses epsilon-prediction
-    and supports cosine beta schedules for improved training stability.
+    both epsilon-prediction and v-prediction. It uses cosine beta schedules for improved 
+    training stability.
     
     Features:
-    - Epsilon-prediction loss (MSE)
+    - Epsilon-prediction and v-prediction loss (MSE)
     - Cosine or linear beta schedule
     - EMA + gradient clipping via Base class
-    - DDPM sampler (full 1000 steps)
-    - DDIM sampler (η=0, subsampled timesteps)
+    - DDPM sampler (full 1000 steps, stochastic)
     """
 
     def __init__(self,
@@ -252,12 +251,14 @@ class DDPM(Base):
                  beta_start=1e-4,
                  beta_end=2e-2,
                  beta_schedule="cosine",
+                 prediction_type="v",
                  **kwargs):
         super().__init__(**kwargs)
 
         self.num_diffusion_steps = int(num_diffusion_steps)
         self.beta_schedule = beta_schedule
-
+        self.prediction_type = prediction_type
+        
         # Create noise schedule
         betas = self._make_beta_schedule(beta_start, beta_end, self.num_diffusion_steps, self.beta_schedule)
         alphas = 1.0 - betas
@@ -284,6 +285,12 @@ class DDPM(Base):
         
         # Move to target device after all buffers are registered
         self.to(self._target_device)
+
+    def _alpha_sigma(self, t, b, device):
+        a_bar_t = self.alpha_bars[t].to(device).view(b, 1, 1)
+        alpha_t = a_bar_t.sqrt()
+        sigma_t = (1.0 - a_bar_t).sqrt()
+        return alpha_t, sigma_t, a_bar_t
 
     @staticmethod
     def _make_beta_schedule(beta_start, beta_end, num_steps, schedule):
@@ -330,9 +337,17 @@ class DDPM(Base):
         return self.net(x_t, timesteps=t, cond=cond, time_cond=time_cond)
 
     def compute_loss(self, x_t, eps, t, time_cond, cond):
-        """Compute MSE loss between predicted and true noise."""
-        eps_pred = self._eps_pred(x_t, t, time_cond, cond)
-        loss = nn.functional.mse_loss(eps_pred, eps)
+        """Compute loss between predicted and target values."""
+        b = x_t.shape[0]
+        pred = self.net(x_t, timesteps=t, cond=cond, time_cond=time_cond)
+
+        if self.prediction_type == "v":
+            alpha_t, sigma_t, _ = self._alpha_sigma(t, b, x_t.device)
+            v_target = alpha_t * eps - sigma_t * ( (x_t - sigma_t * eps) / (alpha_t + 1e-12) )
+            loss = nn.functional.mse_loss(pred, v_target)
+        else:  # "eps"
+            loss = nn.functional.mse_loss(pred, eps)
+
         return {"total_loss": loss, "diff_loss": loss}
 
     def training_step(self, batch, batch_idx=None):
@@ -372,47 +387,51 @@ class DDPM(Base):
 
     @torch.no_grad()
     def sample(self, time_source, cond_source, num_inference_steps=None, deterministic=False):
-        """Stable DDPM sampling (stochastic, training-matched)."""
+        """
+        Sample from the diffusion model using DDPM sampling.
+        
+        Args:
+            time_source: Source for temporal conditioning  
+            cond_source: Source for global conditioning
+            num_inference_steps: Number of sampling steps (defaults to num_diffusion_steps)
+            deterministic: Must be False (DDIM not implemented)
+        """
         self.eval()
 
         if num_inference_steps is None:
             num_inference_steps = self.num_diffusion_steps
         num_inference_steps = int(num_inference_steps)
-        assert deterministic is False, "DDPM sampler is stochastic; set deterministic=False."
+        assert deterministic is False, "DDIM sampling not implemented. Use stochastic DDPM sampling."
 
         time_cond, cond = self.encode_conditioning(time_source, cond_source)
-
         x = torch.randn_like(time_source)
         b = x.shape[0]
 
         for t in range(self.num_diffusion_steps - 1, -1, -1):
             t_batch = torch.full((b,), t, device=x.device, dtype=torch.long)
-            eps = self._eps_pred(x, t_batch, time_cond, cond)
+            pred = self.net(x, timesteps=t_batch, cond=cond, time_cond=time_cond)
 
-            # Scalars for this step
-            a_bar_t     = self.alpha_bars[t].to(x).clamp_min(1e-12)
-            a_bar_prev  = self.alpha_bars_prev[t].to(x).clamp_min(1e-12)
-            beta_t      = self.betas[t].to(x).clamp_min(1e-12)
-            alpha_t     = self.alphas[t].to(x).clamp_min(1e-12)
+            alpha_t, sigma_t, a_bar_t = self._alpha_sigma(t_batch, b, x.device)
+            a_bar_prev = self.alpha_bars_prev[t].to(x).view(1,1,1)
+            beta_t = self.betas[t].to(x).view(1,1,1)
+            alpha_step = self.alphas[t].to(x).view(1,1,1)
 
-            # Predict clean latent
-            sqrt_a_bar  = a_bar_t.sqrt()
-            sqrt_1mab   = (1.0 - a_bar_t).clamp_min(1e-12).sqrt()
-            x0_hat      = (x - sqrt_1mab * eps) / sqrt_a_bar
+            if self.prediction_type == "v":
+                x0_hat = alpha_t * x - sigma_t * pred
+                eps_hat = sigma_t * x + alpha_t * pred
+            else:  # "eps"
+                eps_hat = pred
+                x0_hat = (x - sigma_t * eps_hat) / (alpha_t + 1e-12)
 
-            # Mild, distribution-preserving limiter (prevents runaway)
-            x0_hat = torch.tanh(x0_hat / 5.0) * 5.0
-
-            # Posterior mean: reshape scalars to broadcast over [B,C,T]
-            c1 = (a_bar_prev.sqrt() * beta_t / (1.0 - a_bar_t)).view(1, 1, 1)
-            c2 = (alpha_t.sqrt() * (1.0 - a_bar_prev) / (1.0 - a_bar_t)).view(1, 1, 1)
+            # Ho et al. posterior mean
+            c1 = (a_bar_prev.sqrt() * beta_t / (1.0 - a_bar_t)).view(1,1,1)
+            c2 = (alpha_step.sqrt() * (1.0 - a_bar_prev) / (1.0 - a_bar_t)).view(1,1,1)
             mean = c1 * x0_hat + c2 * x
 
             if t > 0:
-                var = self.posterior_variance[t].to(x).clamp_min(1e-20).view(1, 1, 1)
+                var = self.posterior_variance[t].to(x).view(1,1,1)
                 x = mean + var.sqrt() * torch.randn_like(x)
             else:
                 x = mean
 
         return x
-

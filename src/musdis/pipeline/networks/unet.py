@@ -49,7 +49,7 @@ class UNet1D(nn.Module):
                     cond_channels=total_cond,
                     time_cond_channels=time_cond_channels,
                     kernel_size=kernel_size,
-                    stride=2  # Downsample
+                    stride=1  # No downsampling - preserves temporal resolution
                 )
             )
             prev_channels = ch
@@ -87,7 +87,7 @@ class UNet1D(nn.Module):
                     cond_channels=total_cond,
                     time_cond_channels=time_cond_channels,
                     kernel_size=kernel_size,
-                    upsample=True
+                    upsample=False  # No upsampling needed since no downsampling
                 )
             )
         
@@ -134,9 +134,8 @@ class UNet1D(nn.Module):
             # Get corresponding skip connection (reverse order)
             skip = skip_connections[-(i+1)]
             
-            # Interpolate skip to match current resolution
-            if skip.shape[-1] != x.shape[-1]:
-                skip = nn.functional.interpolate(skip, size=x.shape[-1], mode='linear')
+            # Skip connections should match exactly since no downsampling
+            assert skip.shape[-1] == x.shape[-1], f"Skip shape {skip.shape} doesn't match x shape {x.shape}"
             
             # Concatenate skip connection
             x = torch.cat([x, skip], dim=1)

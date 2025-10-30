@@ -8,8 +8,8 @@ import musdis.pipeline.networks
 
 # Constants
 LATENT_DIM = 64
-TIMBRE_DIM = 24
-STRUCTURE_DIM = 12
+TIMBRE_DIM = 32
+STRUCTURE_DIM = 16
 DIFFUSION_STEPS = 1000
 
 ### ARCHITECTURE ###
@@ -17,7 +17,7 @@ DIFFUSION_STEPS = 1000
 # Global Encoder Configuration (timbre - global representation)
 encoder/musdis.pipeline.networks.encoder.Encoder1D:
     in_channels = %LATENT_DIM
-    channels = [64, 128, 64, %TIMBRE_DIM]
+    channels = [128, 256, 128, %TIMBRE_DIM]
     strides = [2, 2, 2, 2]
     kernel_size = 5
     average_out = True
@@ -26,7 +26,7 @@ encoder/musdis.pipeline.networks.encoder.Encoder1D:
 # Time Encoder Configuration (structure - keeps temporal information for time_cond) 
 encoder_time/musdis.pipeline.networks.encoder.Encoder1D:
     in_channels = %LATENT_DIM
-    channels = [64, 128, 64, %STRUCTURE_DIM]
+    channels = [128, 256, 64, %STRUCTURE_DIM]
     strides = [1, 1, 1, 1]
     kernel_size = 5
     average_out = False
