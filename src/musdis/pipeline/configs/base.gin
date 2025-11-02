@@ -8,8 +8,8 @@ import musdis.pipeline.networks
 
 # Constants
 LATENT_DIM = 64
-TIMBRE_DIM = 32
-STRUCTURE_DIM = 16
+TIMBRE_DIM = 16
+STRUCTURE_DIM = 48
 DIFFUSION_STEPS = 1000
 
 ### ARCHITECTURE ###
@@ -18,19 +18,19 @@ DIFFUSION_STEPS = 1000
 encoder/musdis.pipeline.networks.encoder.Encoder1D:
     in_channels = %LATENT_DIM
     channels = [128, 256, 128, %TIMBRE_DIM]
-    strides = [2, 2, 2, 2]
-    kernel_size = 5
+    strides = [1, 2, 2, 1]
+    kernel_size = 3
     average_out = True
-    use_tanh = True
+    use_tanh = False
 
 # Time Encoder Configuration (structure - keeps temporal information for time_cond) 
 encoder_time/musdis.pipeline.networks.encoder.Encoder1D:
     in_channels = %LATENT_DIM
     channels = [128, 256, 64, %STRUCTURE_DIM]
     strides = [1, 1, 1, 1]
-    kernel_size = 5
+    kernel_size = 3
     average_out = False
-    use_tanh = True
+    use_tanh = False
 
 # UNet Decoder Configuration
 musdis.pipeline.networks.UNet1D:

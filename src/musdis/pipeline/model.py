@@ -37,19 +37,29 @@ class Base(nn.Module):
         """Get model device."""
         return next(self.parameters()).device
 
-    def encode_conditioning(self, latent_time, latent_cond):
-        """Encode conditioning from latents."""
+    def encode_structure(self, latent_time):
+        """Encode structure conditioning from latents (keeps temporal info)."""
         if self.encoder_time is not None:
-            time_cond = self.encoder_time(latent_time)  # Structure - keeps temporal info
+            return self.encoder_time(latent_time)
         else:
-            time_cond = latent_time
-            
+            return latent_time
+    
+    def encode_timbre(self, latent_cond):
+        """Encode timbre conditioning from latents (global representation)."""
         if self.encoder is not None:
-            cond = self.encoder(latent_cond)            # Timbre - global representation
+            return self.encoder(latent_cond)
         else:
-            cond = None
-            
-        return time_cond, cond
+            # Return zeros with correct dimensions for this model
+            batch_size = latent_cond.shape[0]
+            device = latent_cond.device
+            dtype = latent_cond.dtype
+            # Determine the expected timbre embedding size from the UNet config
+            if hasattr(self.net, 'encoder_blocks') and len(self.net.encoder_blocks) > 0:
+                expected_channels = self.net.encoder_blocks[0].cond_channels - self.net.time_embed_dim
+                return torch.zeros(batch_size, expected_channels, device=device, dtype=dtype)
+            else:
+                # Fallback to single channel
+                return torch.zeros(batch_size, 1, device=device, dtype=dtype)
 
     def forward(self, *args, **kwargs):
         """Forward pass - to be implemented by subclasses."""
@@ -360,8 +370,9 @@ class DDPM(Base):
         latent_time = latents   # Time source
         latent_cond = latents   # Global source
         
-        # Encode conditioning
-        time_cond, cond = self.encode_conditioning(latent_time, latent_cond)
+        # Encode conditioning separately
+        time_cond = self.encode_structure(latent_time)
+        cond = self.encode_timbre(latent_cond)
         
         # Sample random timesteps
         timesteps = torch.randint(0, self.num_diffusion_steps, (batch_size,), 
@@ -403,7 +414,10 @@ class DDPM(Base):
         num_inference_steps = int(num_inference_steps)
         assert deterministic is False, "DDIM sampling not implemented. Use stochastic DDPM sampling."
 
-        time_cond, cond = self.encode_conditioning(time_source, cond_source)
+        # Encode conditioning separately
+        time_cond = self.encode_structure(time_source)
+        cond = self.encode_timbre(cond_source)
+        
         x = torch.randn_like(time_source)
         b = x.shape[0]
 
