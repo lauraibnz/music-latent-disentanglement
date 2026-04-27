@@ -19,6 +19,8 @@ The main training path uses:
 - structure pitch supervision
 - a `DiffusionTransformer1D` trained with a `RectifiedFlow` objective
 
+![Music Disentanglement Overview](assets/music-disentanglement.png)
+
 ## Current Scope
 
 At the moment, this repository is intentionally focused and relatively minimal:
