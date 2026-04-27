@@ -4,16 +4,17 @@
 
 ## Overview
 
-This repository studies structure--timbre disentanglement for one-shot timbre transfer and controllable music generation. In contrast to approaches that define structure implicitly through pitch and tempo transformations, this project places structure at the center of the disentanglement process by guiding it with symbolic musical information, specifically MIDI.
+This repository presents a symbolic-guided method for structure--timbre disentanglement for one-shot timbre transfer and controllable music generation. In contrast to approaches that define structure implicitly through pitch and tempo transformations, the method places structure at the center of the disentanglement process by guiding it with symbolic musical information, specifically MIDI.
 
-The method combines:
+The proposed symbolic-guided method combines:
 
 - structure-preserving augmentations
 - pitch supervision
 - timbre triplet supervision
-- a `DiffusionTransformer1D` trained under a `RectifiedFlow` formulation
 
-All components operate in the latent space of a pretrained music autoencoder, `music2latent`, enabling efficient training and inference while supporting reconstruction, one-shot timbre transfer, and controllable generation.
+These components operate in the latent space of a pretrained music autoencoder, in our case `music2latent`, enabling efficient training and inference.
+
+Output latents are generated with a `DiffusionTransformer1D` trained under a `RectifiedFlow` formulation, supporting reconstruction, one-shot timbre transfer, and controllable music generation.
 
 ![Music Disentanglement Overview](assets/music-disentanglement.png)
 
@@ -21,14 +22,14 @@ The figure above summarizes the proposed symbolic-guided method. Solid arrows de
 
 ## Current Scope
 
-At the moment, this repository is intentionally focused and relatively minimal:
+This repository contains:
 
-- one main latent codec path: `music2latent`
-- one main generative path: `RectifiedFlow + DiffusionTransformer1D`
-- symbolic-guided structure supervision through aligned `MIDI`
+- the symbolic-guided structure--timbre disentanglement method described above
+- a latent-space pipeline built around `music2latent`
+- generation with `RectifiedFlow + DiffusionTransformer1D`
 - dataset preparation, training, and notebook-based inference/reconstruction utilities
 
-The current baseline configuration is centered around:
+The main baseline configuration is:
 
 - `src/mld/pipeline/configs/base.gin`
 
@@ -80,7 +81,3 @@ src/mld/
 scripts/          dataset preparation and training entry points
 experiments/      notebooks, outputs, and run artifacts
 ```
-
-## Notes
-
-- This README is intentionally concise for now and can be expanded later with fuller setup, evaluation, and inference details.
