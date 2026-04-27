@@ -1,25 +1,23 @@
-# Music Latent Disentanglement (MLD)
+# Symbolic-Guided Music Latent Disentanglement for One-Shot Timbre Transfer and Controllable Generation
 
-Anonymous authors (paper currently under review)
+*Anonymous authors (paper currently under review)*
 
 ## Overview
 
-The project studies disentanglement in the latent space of a pretrained music autoencoder. The current codebase focuses on learning:
+This repository studies structure--timbre disentanglement for one-shot timbre transfer and controllable music generation. In contrast to approaches that define structure implicitly through pitch and tempo transformations, this project places structure at the center of the disentanglement process by guiding it with symbolic musical information, specifically MIDI.
 
-- `timbre` representations for one-shot transfer
-- `structure` representations guided by symbolic musical information
-- latent generators that support controllable decoding and reconstruction
+The method combines:
 
-The main training path uses:
-
-- pretrained `music2latent` latents
-- symbolic guidance from aligned `MIDI`
-- structure and timbre augmentations
+- structure-preserving augmentations
+- pitch supervision
 - timbre triplet supervision
-- structure pitch supervision
-- a `DiffusionTransformer1D` trained with a `RectifiedFlow` objective
+- a `DiffusionTransformer1D` trained under a `RectifiedFlow` formulation
+
+All components operate in the latent space of a pretrained music autoencoder, `music2latent`, enabling efficient training and inference while supporting reconstruction, one-shot timbre transfer, and controllable generation.
 
 ![Music Disentanglement Overview](assets/music-disentanglement.png)
+
+The figure above summarizes the proposed symbolic-guided method. Solid arrows denote components used during both training and inference, while dashed arrows indicate training-only components.
 
 ## Current Scope
 
@@ -27,6 +25,7 @@ At the moment, this repository is intentionally focused and relatively minimal:
 
 - one main latent codec path: `music2latent`
 - one main generative path: `RectifiedFlow + DiffusionTransformer1D`
+- symbolic-guided structure supervision through aligned `MIDI`
 - dataset preparation, training, and notebook-based inference/reconstruction utilities
 
 The current baseline configuration is centered around:
