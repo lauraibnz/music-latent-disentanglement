@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Supplementary Material | Symbolic-Guided Music Latent Disentanglement</title>
+  </head>
+  <body
+    style="
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 20px 60px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      color: #24292f;
+    "
+  >
+    <div style="text-align: center;">
+      <h1>Symbolic-Guided Music Latent Disentanglement for One-Shot Timbre Transfer and Controllable Generation</h1>
+      <p>Supplementary webpage with audio examples.</p>
+      <p>
+        <em>Anonymous authors (paper currently under review)</em>
+      </p>
+    </div>
+
+    <div style="text-align: justify;">
+      <h3>Abstract</h3>
+      <p>
+        In recent years, a branch of controllable music generation has focused on learning disentangled
+        structure and timbre representations from music audio, enabling one-shot timbre transfer and
+        controllable synthesis. Most existing approaches are trained in unsupervised or semi-supervised
+        settings, relying on architectural biases, data augmentations, staged strategies, or adversarial
+        objectives. However, recent studies reveal significant entanglement in their learned
+        representations, raising concerns about their suitability for reliable timbre transfer. Moreover,
+        these methods tend to define structure implicitly through pitch and tempo transformations,
+        effectively treating timbre as the remaining information. In contrast, we place structure at the
+        center of the disentanglement process by guiding it with symbolic musical information,
+        specifically MIDI. We propose a symbolic-guided method that combines structure-preserving
+        augmentations, pitch supervision, and a contrastive timbre objective. These components operate
+        within the latent space of a pretrained music autoencoder, enabling more efficient training and
+        inference. Output latents are generated using a diffusion transformer (DiT) trained under a
+        rectified flow formulation. We evaluate our approach at both the representation and output
+        levels. Experimental results demonstrate improved disentanglement and superior performance in
+        one-shot timbre transfer, while achieving high reconstruction quality and enabling interpretable,
+        controllable music generation.
+      </p>
+    </div>
+
+    <p align="center">
+      <img
+        src="assets/music-disentanglement.png"
+        alt="Overview of the proposed method."
+        style="max-width: 100%; height: auto;"
+      />
+    </p>
+
+    <h1>Audio Examples</h1>
+
+    <p>
+      This page presents qualitative listening examples for reconstruction and one-shot timbre transfer.
+    </p>
+
+    <h2>Reconstruction</h2>
+
+    <div style="width: 100%; overflow-x: auto;">
+      <table style="border-collapse: collapse; width: max-content; min-width: 100%; text-align: center;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">Example</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">Reference</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">SS-VQ-VAE</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">AFTER</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">Ours</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o aug.</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o pitch sup.</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o contrast.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Example 1</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example1/reference.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example1/ssvqvae.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example1/after.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example1/ours.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example1/no_aug.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example1/no_pitch.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example1/no_contrast.wav" type="audio/wav" /></audio>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Example 2</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example2/reference.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example2/ssvqvae.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example2/after.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example2/ours.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example2/no_aug.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example2/no_pitch.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/reconstruction/example2/no_contrast.wav" type="audio/wav" /></audio>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>One-Shot Timbre Transfer</h2>
+
+    <p>
+      For each example, we provide the source structure, the target timbre reference, and outputs from
+      our model, ablations, and comparison baselines.
+    </p>
+
+    <div style="width: 100%; overflow-x: auto;">
+      <table style="border-collapse: collapse; width: max-content; min-width: 100%; text-align: center;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">Example</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">Source</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">Target Timbre</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">SS-VQ-VAE</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">AFTER</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">Ours</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o aug.</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o pitch sup.</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o contrast.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Piano → Guitar</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/piano_guitar/source.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/piano_guitar/target.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/piano_guitar/ssvqvae.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/piano_guitar/after.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/piano_guitar/ours.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/piano_guitar/no_aug.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/piano_guitar/no_pitch.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/piano_guitar/no_contrast.wav" type="audio/wav" /></audio>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Guitar → Flute</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/guitar_flute/source.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/guitar_flute/target.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/guitar_flute/ssvqvae.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/guitar_flute/after.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/guitar_flute/ours.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/guitar_flute/no_aug.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/guitar_flute/no_pitch.wav" type="audio/wav" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="audio/transfer/guitar_flute/no_contrast.wav" type="audio/wav" /></audio>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </body>
+</html>
