@@ -46,6 +46,7 @@ wheels/
 *.swp
 *.swo
 *~
+.codex
 
 # ML/Data
 *.h5

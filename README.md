@@ -1,87 +1,85 @@
-# MusDis - Music Disentanglement for Controllable Generation
+# Music Latent Disentanglement (MLD)
 
-A PyTorch framework for music disentanglement enabling controllable music generation.
+Anonymous authors (paper currently under review)
 
 ## Overview
 
-MusDis aims to disentangle musical audio into representations:
-- **Timbre**: Timbric characteristics (instrument family, brightness, etc.)
-- **Structure**: Structural patterns (pitch, loudness, rhythm, etc.)
+The project studies disentanglement in the latent space of a pretrained music autoencoder. The current codebase focuses on learning:
 
-The framework supports various generative architectures trained on latent representations (currently using [music2latent](https://github.com/SonyCSLParis/music2latent)).
+- `timbre` representations for one-shot transfer
+- `structure` representations guided by symbolic musical information
+- latent generators that support controllable decoding and reconstruction
 
-## Architecture
+The main training path uses:
 
-- **Encoders**: Extract timbre and structure representations from latents
-- **Generative Model**: Configurable architecture (currently UNet-based diffusion)
-- **Training**: Flexible training pipeline with classifier-free guidance support
+- pretrained `music2latent` latents
+- symbolic guidance from aligned `MIDI`
+- structure and timbre augmentations
+- timbre triplet supervision
+- structure pitch supervision
+- a `DiffusionTransformer1D` trained with a `RectifiedFlow` objective
+
+## Current Scope
+
+At the moment, this repository is intentionally focused and relatively minimal:
+
+- one main latent codec path: `music2latent`
+- one main generative path: `RectifiedFlow + DiffusionTransformer1D`
+- dataset preparation, training, and notebook-based inference/reconstruction utilities
+
+The current baseline configuration is centered around:
+
+- `src/mld/pipeline/configs/base.gin`
 
 ## Installation
 
 ```bash
-# Clone repository
-git clone https://github.com/lauraibnz/MusDis.git
-cd MusDis
-
-# Install dependencies
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 ```
 
-## Usage
+## Dataset Preparation
 
-### Dataset Preparation
+Example command for preparing a latent dataset with MIDI supervision and augmentation banks:
 
 ```bash
-# Prepare SLAKH dataset with latents only (recommended)
 python -m scripts.prepare_dataset \
-    --input_dir /path/to/slakh \
-    --output_dir ./experiments/dataset/slakh_latents \
+    --input_dir /path/to/dataset \
+    --output_dir ./experiments/dataset/mld_latents \
+    --emb_model music2latent \
     --latents_only \
-    --sample_rate 44100
+    --save_midi \
+    --save_struct_aug_latent \
+    --save_timbre_aug_latent
 ```
 
-### Training
+## Training
+
+Example training command:
 
 ```bash
-# Train with small model
 python -m scripts.train \
-    --dataset_path ./experiments/dataset/slakh_latents \
-    --config small.gin \
-    --name my_experiment \
+    --dataset_path ./experiments/dataset/mld_latents \
+    --config base.gin \
+    --name mld_baseline \
     --batch_size 128 \
     --learning_rate 1e-4 \
     --epochs 50
 ```
 
-### Inference
+## Repository Layout
 
-See `experiments/notebooks/inference.ipynb` for audio reconstruction and disentanglement examples.
-
-## Configuration
-
-- `configs/small.gin`: Smaller model for experiments (timbre_dim=16, structure_dim=8)
-- `configs/base.gin`: Full model for production (timbre_dim=24, structure_dim=12)
-
-## Project Structure
-
-```
-MusDis/
-├── src/musdis/           # Core library
-│   ├── dataset/          # Data loading and processing
-│   ├── pipeline/         # Models and training
-│   └── configs/          # Model configurations
-├── scripts/              # Training and data preparation
-└── experiments/          # Outputs and notebooks
+```text
+src/mld/
+  dataset/        dataset loading, parsing, MIDI utilities, augmentations
+  pipeline/       models, networks, configs, training utilities
+  autoencoder/    latent codec helpers
+scripts/          dataset preparation and training entry points
+experiments/      notebooks, outputs, and run artifacts
 ```
 
-## Requirements
+## Notes
 
-- PyTorch >= 2.0
-- music2latent
-- wandb (for logging)
-- lmdb (for datasets)
-
-## License
-
-[Add your license here]
+- This README is intentionally concise for now and can be expanded later with fuller setup, evaluation, and inference details.

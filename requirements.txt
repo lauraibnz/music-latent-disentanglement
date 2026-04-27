@@ -5,4 +5,7 @@ wandb
 tqdm
 numpy>=1.26,<2.0
 gin-config
-git+https://github.com/SonyCSLParis/music2latent.git@master
+pretty_midi
+music2latent
+pyyaml
+librosa
