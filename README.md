@@ -16,7 +16,7 @@ These components operate in the latent space of a pretrained music autoencoder, 
 
 Output latents are generated with a `DiffusionTransformer1D` trained under a `RectifiedFlow` formulation, supporting reconstruction, one-shot timbre transfer, and controllable music generation.
 
-![Music Disentanglement Overview](assets/music-disentanglement.png)
+![Music Disentanglement Overview](assets/images/music-disentanglement.png)
 
 The figure above summarizes the proposed symbolic-guided method. Solid arrows denote components used during both training and inference, while dashed arrows indicate training-only components.
 
