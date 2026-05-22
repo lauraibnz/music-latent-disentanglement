@@ -65,227 +65,14 @@
       <a href="https://drive.google.com/drive/folders/13amCZZqn6F-8eDQZo74UgCwpzhgJYD8S?usp=sharing">here</a>.
     </p>
 
-    <h2>Reconstruction</h2>
+    <h2 id="transfer-section">One-Shot Timbre Transfer</h2>
 
-    <div style="width: 100%; overflow-x: auto;">
-      <table style="border-collapse: collapse; width: max-content; min-width: 100%; text-align: center;">
-        <thead>
-          <tr>
-            <th style="border: 1px solid #d0d7de; padding: 8px;">Example</th>
-            <th style="border: 1px solid #d0d7de; padding: 8px;">Reference</th>
-            <th style="border: 1px solid #d0d7de; padding: 8px;">SS-VQ-VAE</th>
-            <th style="border: 1px solid #d0d7de; padding: 8px;">AFTER</th>
-            <th style="border: 1px solid #d0d7de; padding: 8px;">Ours</th>
-            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o aug</th>
-            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o pitch</th>
-            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o triplet</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">Acoustic Piano</td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/original/source/acoustic_piano.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
-            </td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">Bass</td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/original/source/bass.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
-            </td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">Choir</td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/original/source/choir.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
-            </td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">Classical Guitar</td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/original/source/classical_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">Electric Guitar</td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/original/source/electric_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
-            </td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">Electric Keys</td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/original/source/electric_keys.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
-            </td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">Reed</td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/original/source/reed.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
-            </td>
-          </tr>
-          <tr>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">Strings</td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/original/source/strings.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
-            </td>
-            <td style="border: 1px solid #d0d7de; padding: 8px;">
-              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h2>One-Shot Timbre Transfer</h2>
-
-    <p>
+    <p id="transfer-intro">
       For each example, we provide the source structure, the target timbre reference, and outputs from
       our model, ablations, and comparison baselines.
     </p>
 
-    <div style="width: 100%; overflow-x: auto;">
+    <div id="transfer-table" style="width: 100%; overflow-x: auto;">
       <table style="border-collapse: collapse; width: max-content; min-width: 100%; text-align: center;">
         <thead>
           <tr>
@@ -521,5 +308,222 @@
       </table>
     </div>
 
+    <h2 id="reconstruction-section">Reconstruction</h2>
+
+    <p>
+      For each example, we provide the reference audio together with reconstructions from our model,
+      ablations, and comparison baselines.
+    </p>
+
+    <div style="width: 100%; overflow-x: auto;">
+      <table style="border-collapse: collapse; width: max-content; min-width: 100%; text-align: center;">
+        <thead>
+          <tr>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">Example</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">Reference</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">SS-VQ-VAE</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">AFTER</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">Ours</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o aug</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o pitch</th>
+            <th style="border: 1px solid #d0d7de; padding: 8px;">w/o triplet</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Acoustic Piano</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/original/source/acoustic_piano.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/acoustic_piano.mp3" type="audio/mpeg" /></audio>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Bass</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/original/source/bass.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/bass.mp3" type="audio/mpeg" /></audio>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Choir</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/original/source/choir.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/choir.mp3" type="audio/mpeg" /></audio>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Classical Guitar</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/original/source/classical_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/classical_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Electric Guitar</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/original/source/electric_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/electric_guitar.mp3" type="audio/mpeg" /></audio>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Electric Keys</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/original/source/electric_keys.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/electric_keys.mp3" type="audio/mpeg" /></audio>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Reed</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/original/source/reed.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/reed.mp3" type="audio/mpeg" /></audio>
+            </td>
+          </tr>
+          <tr>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">Strings</td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/original/source/strings.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ss_vq_vae/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/after/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_aug/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_pitch/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
+            </td>
+            <td style="border: 1px solid #d0d7de; padding: 8px;">
+              <audio controls style="width: 180px;"><source src="assets/audio/ours_no_triplet/reconstruction/strings.mp3" type="audio/mpeg" /></audio>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </body>
 </html>
